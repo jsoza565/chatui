@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="es">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Chatbot del Río Pilcomayo</title>
+        <link rel="stylesheet"
+            href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+        <style>
+        body {
+            padding: 20px;
+        }
+
+        #chat-container {
+            width: 100%;
+            max-width: 600px;
+            margin: auto;
+            padding: 10px;
+        }
+
+        #chat-containerpez {
+            width: 50%;
+            max-width: 150px;
+            margin: auto;
+            border-radius: 20%;
+            align-content: center;
+        }
+
+        #chat-history {
+            height: 400px;
+            overflow-y: scroll;
+            border: 1px solid #ddd;
+            padding: 10px;
+            background-color: #f8f9fa;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .text-left {
+            text-align: left;
+        }
+
+
+        .spinner-border {
+            width: 1.5rem;
+            height: 1.5rem;
+        }
+        #gif-container {
+            position: relative;
+            width: 80%;
+            height: 80%;
+            overflow: hidden;
+        }
+
+        #gif {
+            width: 100%;
+            height: 100%;
+            padding-top: 40%;
+            opacity: 1;
+            transition: opacity 0.5s ease-in-out;
+        }    
+
+.gif-rotacion {
+    width: 200px; 
+    animation: rotacionY 1s linear 1; 
+}
+
+@keyframes rotacionY {
+    from {
+        transform: rotateY(0deg);
+    }
+    to {
+        transform: rotateY(360deg);
+    }
+}
+
+.iluminacion { 
+    animation: iluminar 5s forwards; 
+}
+ @keyframes iluminar { 
+    from { 
+        box-shadow: 0 0 0px rgba(255, 255, 0, 0); 
+    } to {
+         box-shadow: 0 0 20px rgb(22, 145, 34); 
+        } 
+}
+.oculto { display: none; }
+       
+        .toast-container {
+            position: absolute;
+            top: 60px;
+            right: 10px;
+            z-index: 1050;
+            /* Asegúrate de que el toast esté sobre otros elementos */
+            display: flex;
+            flex-direction: column;
+            overflow: visible;
+        }
+
+        .toast {
+            position: relative;
+            margin-bottom: 1rem;
+            background-color: white;
+        }
+
+        .toast:before {
+            content: "";
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            z-index: 1060;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 10px solid transparent !important;
+            border-right: 10px solid transparent !important;
+            border-top: 10px solid white !important;
+        }
+
+        .fixed-height {
+            height: 350px;
+            /* Ajusta la altura según sea necesario */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .fixed-height .row {
+            flex: 1;
+            /* Hace que las filas ocupen el espacio disponible */
+        }
+
+        .toast-body { 
+            font-size: 14px; /* Tamaño de fuente por defecto */ 
+        } /* Media query para pantallas pequeñas (celulares) */ 
+        @media (max-width: 768px) { 
+            .toast-body { 
+                font-size: 9px; /* Tamaño de fuente para celulares */ 
+            } 
+        } /* Media query para pantallas grandes (computadoras) */ 
+        @media (min-width: 769px) { 
+            .toast-body { 
+                font-size: 14px; /* Tamaño de fuente para computadoras */ 
+            } 
+        }
+
+        #input-section input { 
+            font-size: small;
+        }
+        #btn1 { 
+            font-size: small;
+        }
+        #btn2 { 
+            font-size: small;
+        }
+        #btn3 { 
+            font-size: small;
+        }
+        #btn4 { 
+            font-size: small;
+        }
+        #stopButton { 
+            font-size: small;
+        }
+        #espacio {
+            padding-top: 30%;
+        }
+        #chat-history {
+            font-size: small;
+        }
+        @media (max-width: 768px) { 
+          
+         #input-section input { font-size: x-small; }
+         #btn1 { font-size: x-small; }
+         #btn2 { font-size: x-small; }
+         #btn3 { font-size: x-small; }
+         #btn4 { font-size: x-small; }
+         #stopButton { 
+            font-size: x-small;
+        }
+        #espacio {
+            padding-top: 50%;
+        }
+        #chat-history {
+            font-size: x-small;
+        }
+        } 
+        @media (min-width: 769px) { 
+           
+                #input-section input { font-size: small; }
+                #btn1 { font-size: small; }
+                #btn1 { font-size: small; }
+                #btn3 { font-size: small; } 
+                #btn4 { font-size: small; }
+                #stopButton { 
+                    font-size: small;
+                }
+                #espacio {
+                    padding-top: 30%;
+                 }
+                 #chat-history {
+                    font-size: small;
+                }
+            }
+
+    </style>
+        <script>
+        var gif;
+        var cuadroRojo;
+        var dynamicToast;
+        var audio;
+        var timeouts = [];
+        document.addEventListener("DOMContentLoaded", () => {
+            const chatHistory = document.getElementById('chat-history');
+            const botonesContainer = document.createElement('div');
+            botonesContainer.className = 'text-left mb-1';
+            botonesContainer.innerHTML = ` <button class="btn btn-sm mx-1 mb-1" id="btn2" style="background-color: #b2dfdb; " onclick="enviarPreguntaPredefinida('¿En qué países se encuentra la Cuenca del río Pilcomayo?')">¿En qué países se encuentra la Cuenca del río Pilcomayo?</button> <button class="btn btn-sm mx-1 mb-1" style=" background-color: #b2dfdb;" id="btn3" onclick="enviarPreguntaPredefinida('¿Cuál es la distancia que recorre el río Pilcomayo?')">¿Cuál es la distancia que recorre el río Pilcomayo?</button> <button class="btn btn-sm mx-1 mb-1" style=" background-color: #b2dfdb; " id="btn4" onclick="enviarPreguntaPredefinida('¿Cuál es la superficie aproximada de la Cuenca del río Pilcomayo?')">¿Cuál es la superficie aproximada de la Cuenca del río Pilcomayo?</button> `;
+            chatHistory.appendChild(botonesContainer);
+            audio = document.getElementById("miAudio");            
+
+            document.getElementById('pregunta').addEventListener('keypress', function (event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    enviarPregunta();
+                }
+            });
+            //###############################################################################33
+
+            var input = document.getElementById("pregunta");
+            gif = document.getElementById("gif");
+            cuadroRojo = document.getElementById("toast-body");
+            dynamicToast = $('#dynamic-toast');
+            var primero = true;
+
+            if (primero) {
+                
+                setTimeout(() => {                                     
+                   changeGif("pez3/hola-w.webp", "Hola, soy un chatbot especializado en responder preguntas sobre el río Pilcomayo.");
+                }, 1500);
+                timeouts.push( setTimeout(() => {
+                   dynamicToast.toast('hide');                   
+                    changeGif("pez3/ayudarte-w.webp", "Para conocer datos del Pilcomayo puedes presionar sobre alguna de estas preguntas generales");
+                    iluminarSeccion();
+                }, 9200));
+                timeouts.push( setTimeout(() => {
+                    dynamicToast.toast('hide');                    
+                    changeGif("pez3/hola-w.webp", "Si tienes otra pregunta escribela en el campo de abajo y presiona enviar o 'enter'");
+                    iluminarSeccionInput();
+                }, 16500));
+
+                primero = false;
+                timeouts.push( setTimeout(() => {
+                   dynamicToast.toast('hide');                  
+                    changeGifEsperando("pez3/esperando-w.webp");
+                }, 25000));
+            }
+            function changeGifEsperando(newSrc) {
+                var stopButton = document.getElementById("stopButton"); 
+            stopButton.classList.add('oculto');
+                dynamicToast.toast('hide');
+               gif.classList.remove('gif-rotacion');
+                gif.style.opacity = 0;
+                setTimeout(function () {
+                    gif.src = newSrc;
+                    gif.style.opacity = 1;
+                gif.classList.add('gif-rotacion');
+                }, 50);
+            }
+            function changeGif(newSrc, newTooltipText) {
+
+               
+                gif.style.opacity = 0;
+               
+                setTimeout(function () {
+                    gif.src = newSrc;
+                    cuadroRojo.textContent = newTooltipText;
+                    gif.style.opacity = 1;
+                    dynamicToast.toast('show');
+                  
+                }, 200);
+            }
+
+            //################################################################################3
+            function iluminarSeccion() { 
+                var chatHistory = document.getElementById("chat-history"); 
+                chatHistory.classList.add('iluminacion'); 
+                setTimeout(function() 
+                {
+                     chatHistory.classList.remove('iluminacion'); 
+                    }, 5000);
+                    }
+            
+                    function iluminarSeccionInput() { 
+                        var element = document.getElementById("input-section");
+                        element.classList.add('iluminacion');  
+                        setTimeout(function() {
+                             element.classList.remove('iluminacion'); 
+                            }, 5000);
+                }
+
+        function detenerTemporizadores() { 
+            for (var i = 0; i < timeouts.length; i++) { 
+                clearTimeout(timeouts[i]); 
+            } 
+            timeouts = []; 
+            var stopButton = document.getElementById("stopButton"); 
+            stopButton.classList.add('oculto');
+        }
+
+        var stopButton = document.getElementById("stopButton"); 
+        stopButton.addEventListener("click", function() { 
+            detenerTemporizadores(); 
+            changeGifEsperando("pez3/esperando-w.webp");
+        });
+          
+        });
+
+        function detenerTemporizadoresDos() { 
+            for (var i = 0; i < timeouts.length; i++) { 
+                clearTimeout(timeouts[i]); 
+            }
+            timeouts = []; 
+            var stopButton = document.getElementById("stopButton"); 
+            stopButton.classList.add('oculto');
+        }
+
+        function reproducirSonidoDos() { audio.play(); }
+
+        function changeGifDos(newSrc, newTooltipText) {
+            dynamicToast.toast('hide');
+            gif.style.opacity = 0;
+            setTimeout(function () {
+                gif.src = newSrc;
+                cuadroRojo.textContent = newTooltipText;
+                gif.style.opacity = 1;
+                reproducirSonidoDos();
+                dynamicToast.toast('show');
+            }, 500);
+            setTimeout(() => {
+                changeGifEsperandoDos("pez3/esperando-w.webp");
+            }, 10000);
+
+        }
+        function changeGifEsperandoDos(newSrc,) {
+            dynamicToast.toast('hide');
+            gif.style.opacity = 0;
+            setTimeout(function () {
+                gif.src = newSrc;
+                gif.style.opacity = 1;
+            }, 500);
+        }
+
+        function enviarPreguntaPredefinida(pregunta) {
+            document.getElementById('pregunta').value = pregunta;
+            enviarPregunta();
+        }
+
+        async function enviarPregunta() {
+            detenerTemporizadoresDos();
+            const pregunta = document.getElementById('pregunta').value.trim();
+            const chatHistory = document.getElementById('chat-history');
+            var palabras = ["adios", "hasta pronto", "gracias", "nos vemos", "hasta luego"];
+            var resultado = document.getElementById("resultado");
+            var palabrasEncontradas = [];
+
+            if (pregunta === '') {
+                alert('Por favor, ingresa una pregunta antes de enviar.');
+                return;
+            }
+
+            for (var i = 0; i < palabras.length; i++) { 
+                if (pregunta.includes(palabras[i])) { 
+                    palabrasEncontradas.push(palabras[i]); 
+                } 
+            } 
+            
+            if (palabrasEncontradas.length > 0) { 
+                
+                changeGifDos("pez3/adios-w.webp", "Gracias por tu interes en saber más sobre el río Pilcomayo");
+            } 
+
+            const preguntaParrafo = document.createElement('div');
+            preguntaParrafo.className = 'text-right';
+            preguntaParrafo.innerHTML = `<div class="p-2 mb-2  text-black rounded" style="background-color: #4db6ac"><b>Tú:</b> ${pregunta}</div>`;
+            chatHistory.appendChild(preguntaParrafo);
+            const respuestaParrafo = document.createElement('div');
+            respuestaParrafo.className = 'text-left';
+            respuestaParrafo.innerHTML = `<div class="p-2 mb-2 text-black rounded" style="background-color: #e0e0e0"><div class="spinner-border text-green" role="status"><span class="sr-only">Loading...</span></div></div>`;
+            chatHistory.appendChild(respuestaParrafo);
+            const respuestaContent = respuestaParrafo.firstChild;
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+            try {
+                const response = await fetch('https://apidos.geovisor.org/responder_pregunta', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ pregunta: pregunta }),
+                    signal: controller.signal
+                });
+
+                clearTimeout(timeoutId);
+
+                if (response.ok) {
+                    changeGifDos("pez3/hola-w.webp", "Esta es la respuesta a tu pregunta >");
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder("utf-8");
+                    let respuestaCompleta = '';
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        let respuesta = decoder.decode(value, { stream: true });
+                        respuesta = respuesta.replace(/data: /g, '').replace(/\n\n/g, ' ');
+                        respuestaCompleta += respuesta;
+                        respuestaContent.innerHTML = `<b>Chatbot:</b> ${respuestaCompleta}`;
+                        chatHistory.scrollTop = chatHistory.scrollHeight;
+                    }
+                } else {
+                    respuestaContent.className = 'p-2 mb-2 bg-danger text-white rounded';
+                    respuestaContent.textContent = 'Error al recibir la respuesta.';
+                }
+            } catch (error) {
+                respuestaContent.className = 'p-2 mb-2 bg-warning text-white rounded';
+                respuestaContent.textContent = 'El sistema está recibiendo muchas peticiones, por favor intente de nuevo.';
+            } finally {
+                document.getElementById('pregunta').value = '';
+                chatHistory.scrollTop = chatHistory.scrollHeight;
+
+            }
+        }
+        //Para conocer datos del Pilcomayo puede seleccionar alguna de estas preguntas
+        // Si tienes otra pregunta escribela en el campo de abajo y presiona enviar o "enter"
+
+        // No comprendo tu pregunta, por favor podrias ser mas especifico
+        // Mi objetivo es responder preguntas sobre el Pilcomayo, ¿tienes alguna duda del río Pilcomayo?
+        //Gracias por tu interes en saber mas sobre el rio Pilcomayo
+
+        //Nota.- Esta IA puede comenter errores al responder, por favor revisa documentacion oficial del rio Pilcomayo     7Asd37%Ru+FjbZ=
+    </script>
+    </head>
+
+    <body>
+        <div class="container">
+            <div class="row">
+                <div class="col-3 fixed-height" id="espacio">
+                    <div class="row justify-content-md-center">
+                        <div class="toast-container">
+                            <div class="toast" id="dynamic-toast"
+                                data-delay="7000">
+                                <div class="toast-body" id="toast-body">
+                                </div>
+                                <audio id="miAudio" src="pez3/burbuja.ogg"
+                                    autoplay></audio>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row justify-content-md-center">
+                        <div id="gif-container">
+                            <img id="gif" class="img-fluid"
+                                src="pez3/esperando-w.webp" alt="GIF">
+                        </div>
+                    </div>
+                    <div class="row justify-content-md-center">
+                        <div class="text-center">
+                            <button class="btn"
+                                style=" background-color: #757776; color: white"
+                                id="stopButton">Saltar tutorial >></button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-9">
+                    <div id="chat-container" class="mt-5 card chat-container">
+                        <div class="card-header text-center">
+                            <span ><b>Chatbot del Río
+                                    Pilcomayo</b></span>
+                        </div>
+                        <div id="chat-history" class="card-body mb-3">
+
+                        </div>
+                        <div class="input-group mb-3 card-footer"
+                            id="input-section">
+                            <input type="text" id="pregunta"
+                                class="form-control"
+                                placeholder="Escribe tu pregunta aquí">
+                            <div class="input-group-append">
+                                <button class="btn" id="btn1"
+                                    style=" background-color: #4db6ac;"
+                                    onclick="enviarPregunta()">Enviar</button>
+
+                            </div>
+                        </div>
+                        <div class="row justify-content-md-center">
+                            <span class="container"
+                                style="color: #757776; font-size: x-small; text-align: center">*Este
+                                Chatbot (IA) puede cometer errores al responder,
+                                por
+                                favor revisa la documentación oficial sobre el
+                                río
+                                Pilcomayo</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+        <script
+            src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+        <script
+            src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+    </body>
+
+</html>

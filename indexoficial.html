@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chatbot del Río Pilcomayo</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <style>
+        body {
+            padding: 20px; /* Añadir padding alrededor de la tarjeta */
+        }
+        #chat-container {
+            width: 100%;
+            max-width: 600px;
+            margin: auto;
+            padding: 20px; /* Añadir padding dentro de la tarjeta */
+        }
+        #chat-history {
+            height: 400px;
+            overflow-y: scroll;
+            border: 1px solid #ddd;
+            padding: 10px;
+            background-color: #f8f9fa;
+        }
+        .text-right {
+            text-align: right;
+        }
+        .text-left {
+            text-align: left;
+        }
+        .p-2.mb-2 {
+            font-size: 14px; /* Reducir el tamaño de la letra */
+        }
+        .spinner-border {
+            width: 1.5rem;
+            height: 1.5rem;
+        }
+    </style>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const chatHistory = document.getElementById('chat-history');
+            const mensajeBienvenida = document.createElement('div');
+            mensajeBienvenida.className = 'text-left';
+            mensajeBienvenida.innerHTML = `<div class="p-2 mb-2 text-black rounded" style="background-color: #e0e0e0"><b>Chatbot: </b>Hola, soy un chatbot especializado en responder preguntas sobre el río Pilcomayo. ¿En qué puedo ayudarte hoy?</div>`;
+            chatHistory.appendChild(mensajeBienvenida);           
+            document.getElementById('pregunta').addEventListener('keypress', function(event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    enviarPregunta();
+                }
+            });
+        });
+
+        async function enviarPregunta() {
+            const pregunta = document.getElementById('pregunta').value.trim();
+            const chatHistory = document.getElementById('chat-history');
+            if (pregunta === '') {
+                alert('Por favor, ingresa una pregunta antes de enviar.');
+                return;
+            }
+
+            // Añadir la pregunta al historial de chat
+            const preguntaParrafo = document.createElement('div');
+            preguntaParrafo.className = 'text-right';
+            preguntaParrafo.innerHTML = `<div class="p-2 mb-2 text-black rounded" style="background-color: #b2dfdb"><b>Tú:</b> ${pregunta}</div>`;
+            chatHistory.appendChild(preguntaParrafo);
+
+            // Crear el contenedor para la respuesta
+            const respuestaParrafo = document.createElement('div');
+            respuestaParrafo.className = 'text-left';
+            respuestaParrafo.innerHTML = `<div class="p-2 mb-2 text-black rounded" style="background-color: #e0e0e0"><div class="spinner-border text-green" role="status"><span class="sr-only">Cargando...</span></div></div>`;
+            chatHistory.appendChild(respuestaParrafo);
+            const respuestaContent = respuestaParrafo.firstChild;
+
+            // Desplazar hacia abajo después de añadir la pregunta
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000);
+            try {
+                const response = await fetch('https://apidos.geovisor.org/responder_pregunta', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ pregunta: pregunta }),
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+                if (response.ok) {
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder();
+                    let respuestaCompleta = '';
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        let respuesta = decoder.decode(value, { stream: true });
+                        respuesta = respuesta.replace(/data: /g, '').replace(/\n\n/g, ' '); // Limpiar respuesta
+                        respuestaCompleta += respuesta;
+                        respuestaContent.innerHTML = `<b>Chatbot:</b> ${respuestaCompleta}`;
+                        // Desplazar hacia abajo a medida que se reciben fragmentos de respuesta
+                        chatHistory.scrollTop = chatHistory.scrollHeight;
+                    }
+                } else {
+                    respuestaContent.className = 'p-2 mb-2 bg-danger text-white rounded';
+                    respuestaContent.textContent = 'Error al recibir la respuesta.';
+                }
+            } catch (error) {
+                respuestaContent.className = 'p-2 mb-2 bg-warning text-white rounded';
+                respuestaContent.textContent = 'El sistema está recibiendo muchas solicitudes, por favor intente de nuevo.';
+            } finally {
+                document.getElementById('pregunta').value = ''; // Limpiar el campo de entrada
+                chatHistory.scrollTop = chatHistory.scrollHeight; // Desplazar hacia abajo
+            }
+        }
+    </script>
+</head>
+<body>
+    <div id="chat-container" class="mt-5 card">
+        <div class="card-header text-center">
+            <h5>Chatbot del Río Pilcomayo</h5>
+        </div>
+        <div id="chat-history" class="card-body mb-3"></div>
+        <div class="input-group mb-3 card-footer">
+            <input type="text" id="pregunta" class="form-control" style="font-size: 14px" placeholder="Escribe tu pregunta aquí">
+            <div class="input-group-append">
+                <button class="btn " style="font-size: 14px; background-color: #4db6ac" onclick="enviarPregunta()">Enviar</button>
+            </div>
+        </div>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+</body>
+</html>
